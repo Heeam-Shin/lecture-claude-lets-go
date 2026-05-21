@@ -17,12 +17,12 @@ const bikeRoute: Route = {
   totalMinutes: 34,
   isShortest: false,
   segments: [
-    { type: 'walk', minutes: 4, label: '도보', subLabel: '서울역광장 대여소까지' },
+    { type: 'walk', minutes: 4, label: '도보', subLabel: 'ST-0207 서울역광장까지' },
     {
       type: 'bike',
       minutes: 25,
       label: '따릉이',
-      subLabel: '서울역광장 대여소 → 강남역 대여소',
+      subLabel: 'ST-0207 서울역광장 → ST-1185 강남역2번출구',
       bikeAvailable: false,
     },
     { type: 'walk', minutes: 5, label: '도보', subLabel: '목적지까지' },
@@ -52,9 +52,9 @@ describe('RouteCard', () => {
     expect(screen.getAllByText('1호선').length).toBeGreaterThanOrEqual(1)
   })
 
-  it('displays bike station name in subLabel', () => {
+  it('displays bike station id and name in subLabel', () => {
     render(<RouteCard route={bikeRoute} />)
-    expect(screen.getByText(/서울역광장 대여소 → 강남역 대여소/)).toBeInTheDocument()
+    expect(screen.getByText(/ST-0207 서울역광장 → ST-1185 강남역2번출구/)).toBeInTheDocument()
   })
 
   it('renders segments in left-to-right order in diagram', () => {
