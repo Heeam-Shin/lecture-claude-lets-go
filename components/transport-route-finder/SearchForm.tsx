@@ -3,16 +3,16 @@
 import { useState } from 'react'
 import { MapPinIcon, FlagIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 
 interface SearchFormProps {
   initialValues?: { from: string; to: string }
   onSearch: (from: string, to: string) => void
   onClear: () => void
+  isLoading?: boolean
 }
 
-export function SearchForm({ initialValues, onSearch, onClear }: SearchFormProps) {
+export function SearchForm({ initialValues, onSearch, onClear, isLoading }: SearchFormProps) {
   const [from, setFrom] = useState(initialValues?.from ?? '')
   const [to, setTo] = useState(initialValues?.to ?? '')
   const [errors, setErrors] = useState<{ from?: string; to?: string }>({})
@@ -40,42 +40,44 @@ export function SearchForm({ initialValues, onSearch, onClear }: SearchFormProps
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <div className="relative flex items-center">
-          <MapPinIcon className="absolute left-2.5 size-4 text-muted-foreground" />
-          <Input
+        <InputGroup>
+          <InputGroupAddon align="inline-start">
+            <MapPinIcon />
+          </InputGroupAddon>
+          <InputGroupInput
             placeholder="출발지 입력"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className={cn('pl-8', errors.from && 'border-destructive')}
             aria-invalid={!!errors.from}
           />
-        </div>
+        </InputGroup>
         {errors.from && (
           <p className="text-xs text-destructive ml-1">{errors.from}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-1">
-        <div className="relative flex items-center">
-          <FlagIcon className="absolute left-2.5 size-4 text-muted-foreground" />
-          <Input
+        <InputGroup>
+          <InputGroupAddon align="inline-start">
+            <FlagIcon />
+          </InputGroupAddon>
+          <InputGroupInput
             placeholder="목적지 입력"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className={cn('pl-8', errors.to && 'border-destructive')}
             aria-invalid={!!errors.to}
           />
-        </div>
+        </InputGroup>
         {errors.to && (
           <p className="text-xs text-destructive ml-1">{errors.to}</p>
         )}
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" className="flex-1">
-          경로 검색
+        <Button type="submit" className="flex-1" disabled={isLoading}>
+          {isLoading ? '검색 중...' : '경로 검색'}
         </Button>
-        <Button type="button" variant="outline" onClick={handleClear}>
+        <Button type="button" variant="outline" onClick={handleClear} disabled={isLoading}>
           지우기
         </Button>
       </div>

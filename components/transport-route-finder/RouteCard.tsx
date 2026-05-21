@@ -1,13 +1,7 @@
-import { FootprintsIcon, TrainIcon, BikeIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { RouteDiagram } from './RouteDiagram'
 import type { Route } from '@/types/route'
-
-const ICON_MAP = {
-  walk: FootprintsIcon,
-  subway: TrainIcon,
-  bike: BikeIcon,
-} as const
+import { TRANSPORT_ICON_MAP } from './transportIcons'
 
 interface RouteCardProps {
   route: Route
@@ -17,7 +11,7 @@ export function RouteCard({ route }: RouteCardProps) {
   return (
     <div className="border border-border rounded-none bg-background p-3">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-bold">{route.totalMinutes}분</span>
+        <span data-testid="route-card-time" className="text-sm font-bold">{route.totalMinutes}분</span>
         {route.isShortest && (
           <Badge variant="secondary">최단</Badge>
         )}
@@ -27,7 +21,7 @@ export function RouteCard({ route }: RouteCardProps) {
 
       <div className="flex flex-col gap-1.5 text-xs border-t border-border pt-2 mt-2">
         {route.segments.map((seg, i) => {
-          const Icon = ICON_MAP[seg.type]
+          const Icon = TRANSPORT_ICON_MAP[seg.type]
           return (
             <div key={i} className="flex justify-between items-center">
               <span className="flex items-center gap-1">

@@ -70,6 +70,7 @@ export function TransportRouteFinder() {
           initialValues={lastQuery ?? undefined}
           onSearch={handleSearch}
           onClear={handleClear}
+          isLoading={status === 'loading'}
         />
       )}
 

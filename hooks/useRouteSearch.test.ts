@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useRouteSearch } from './useRouteSearch'
 import type { Route } from '@/types/route'
 
@@ -65,6 +65,20 @@ describe('useRouteSearch', () => {
     })
 
     expect(result.current.status).toBe('error')
+  })
+
+  it('sets status to empty when routes array is empty', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ routes: [] }), { status: 200 })
+    )
+
+    const { result } = renderHook(() => useRouteSearch())
+
+    await act(async () => {
+      await result.current.search('알수없는곳', '더알수없는곳')
+    })
+
+    expect(result.current.status).toBe('empty')
   })
 
   it('sends a new fetch request on each consecutive search call', async () => {

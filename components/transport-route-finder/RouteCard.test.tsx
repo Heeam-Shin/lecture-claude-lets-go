@@ -42,11 +42,9 @@ describe('RouteCard', () => {
   })
 
   it('renders transport icons for each segment in the diagram', () => {
-    const { container } = render(<RouteCard route={baseRoute} />)
-    // RouteDiagram renders SVG icons — check there are SVG elements present
-    const svgIcons = container.querySelectorAll('svg')
-    // 3 segments * 2 (diagram + list) = 6 icons
-    expect(svgIcons.length).toBeGreaterThanOrEqual(3)
+    render(<RouteCard route={baseRoute} />)
+    // 3 segments in the diagram
+    expect(screen.getAllByTestId('route-diagram-segment').length).toBe(3)
   })
 
   it('displays subway line name', () => {
@@ -60,10 +58,9 @@ describe('RouteCard', () => {
   })
 
   it('renders segments in left-to-right order in diagram', () => {
-    const { container } = render(<RouteCard route={baseRoute} />)
-    const diagram = container.querySelector('.flex.items-end.gap-0')
-    const segmentNodes = diagram?.querySelectorAll('.flex.flex-col.items-center')
-    expect(segmentNodes?.length).toBe(3)
+    render(<RouteCard route={baseRoute} />)
+    const segmentNodes = screen.getAllByTestId('route-diagram-segment')
+    expect(segmentNodes.length).toBe(3)
   })
 
   it('renders route card when bike segment has bikeAvailable: false', () => {

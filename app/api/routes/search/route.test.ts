@@ -94,6 +94,32 @@ describe('POST /api/routes/search', () => {
     expect(data.routes).toHaveLength(0)
   })
 
+  it('returns 400 when body is malformed JSON', async () => {
+    const req = new Request('http://localhost/api/routes/search', {
+      method: 'POST',
+      body: 'not-json',
+    })
+
+    const res = await POST(req)
+    const data = await res.json()
+
+    expect(res.status).toBe(400)
+    expect(data.error).toBe('invalid_request')
+  })
+
+  it('returns 400 when from field is missing', async () => {
+    const req = new Request('http://localhost/api/routes/search', {
+      method: 'POST',
+      body: JSON.stringify({ to: '강남역' }),
+    })
+
+    const res = await POST(req)
+    const data = await res.json()
+
+    expect(res.status).toBe(400)
+    expect(data.error).toBe('invalid_request')
+  })
+
   it('returns 502 when calculateRoutes throws', async () => {
     vi.mocked(calculateRoutes).mockRejectedValue(new Error('External API error'))
 

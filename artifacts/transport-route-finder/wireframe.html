@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wireframe: 서울 교통 최적 경로 탐색기</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    --w-bg: #f5f5f5;
+    --w-border: #ccc;
+    --w-text: #555;
+    --w-muted: #aaa;
+    --w-fill: #eee;
+  }
+
+  * {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--w-text);
+  }
+
+  body { background: var(--w-bg); }
+
+  nav { position: sticky; top: 0; z-index: 40; background: var(--w-bg); border-bottom: 1px solid var(--w-border); }
+  nav button { cursor: pointer; font-size: 13px; }
+  nav button:hover { background: var(--w-fill); border-radius: 4px; }
+  nav button.active { font-weight: bold; border-bottom: 2px solid var(--w-text); }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .vp-toggle button {
+    font-size: 12px; padding: 2px 8px;
+    border: 1px solid var(--w-border); cursor: pointer; background: white;
+  }
+  .vp-toggle button:first-child { border-radius: 4px 0 0 4px; }
+  .vp-toggle button:last-child { border-radius: 0 4px 4px 0; border-left: none; }
+  .vp-toggle button.active { background: var(--w-text); color: white; }
+
+  body.viewport-mobile .screen-content {
+    max-width: 375px !important;
+    margin: 24px auto !important;
+    border: 2px solid var(--w-border);
+    border-radius: 24px;
+    min-height: 667px;
+    background: white;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 32px 16px !important;
+  }
+
+  .screen-notes {
+    background: #fffde7;
+    border-left: 3px solid #ffd54f;
+    padding: 12px 16px;
+    margin-top: 24px;
+    font-size: 13px;
+    border-radius: 0 4px 4px 0;
+  }
+  .screen-notes summary { cursor: pointer; font-weight: bold; font-size: 12px; color: #b0a050; text-transform: uppercase; letter-spacing: 0.05em; }
+  .screen-notes p { margin: 6px 0 2px; color: #777; }
+  .screen-notes ul { margin: 4px 0 0 16px; padding: 0; color: #777; }
+  .screen-notes li { margin: 2px 0; }
+
+  /* Scenario sub-sections */
+  .w-scenario { display: none; }
+  .w-scenario.active { display: block; }
+
+  .w-sc-btn {
+    cursor: pointer; font-size: 11px; padding: 2px 8px;
+    border: 1px solid var(--w-border); background: white; border-radius: 3px;
+  }
+  .w-sc-btn.active { background: var(--w-text); color: white; }
+
+  /* Route diagram */
+  .w-seg { display: flex; flex-direction: column; align-items: center; font-size: 11px; min-width: 44px; text-align: center; }
+  .w-seg-icon {
+    width: 32px; height: 32px;
+    border: 1px solid var(--w-border);
+    background: var(--w-fill);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 3px;
+  }
+  .w-seg-icon.dashed { border-style: dashed; }
+  .w-arrow {
+    flex: 1; height: 1px; background: var(--w-border);
+    align-self: center; min-width: 10px; position: relative; margin-top: -18px;
+  }
+  .w-arrow::after {
+    content: '›'; position: absolute; right: -5px; top: -11px;
+    color: var(--w-muted); font-size: 14px;
+  }
+</style>
+</head>
+<body class="p-0 m-0 viewport-mobile">
+
+<nav class="flex items-center gap-4 px-6 py-2">
+  <span class="text-xs" style="color:var(--w-muted)">wireframe</span>
+  <button id="nav-0" onclick="show(0)" class="px-2 py-1">검색</button>
+  <button id="nav-1" onclick="show(1)" class="px-2 py-1">경로 결과</button>
+  <button id="nav-2" onclick="show(2)" class="px-2 py-1">오류 / 없음</button>
+  <div class="vp-toggle flex ml-auto">
+    <button id="vp-desktop" onclick="setViewport('desktop')">Desktop</button>
+    <button id="vp-mobile" onclick="setViewport('mobile')" class="active">Mobile</button>
+  </div>
+</nav>
+
+<!-- ── Screen 0: 검색 ── -->
+<div id="screen-0" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-4" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      검색
+    </h2>
+
+    <div class="flex gap-2 mb-5 flex-wrap items-center">
+      <span style="font-size:11px; color:var(--w-muted)">시나리오:</span>
+      <button class="w-sc-btn active" onclick="switchScenario(0, 's0-base', this)">초기 / 지우기 후</button>
+      <button class="w-sc-btn" onclick="switchScenario(0, 's0-sc4', this)">4. 입력 불완전</button>
+    </div>
+
+    <!-- App title -->
+    <div class="mb-5">
+      <div class="flex items-center gap-2 mb-1">
+        <i data-lucide="map" style="width:18px;height:18px;color:var(--w-text)"></i>
+        <span class="text-sm font-bold">서울 교통 최적 경로</span>
+      </div>
+      <p class="text-xs pl-7" style="color:var(--w-muted)">도보 · 지하철 · 따릉이 조합 최단 시간</p>
+    </div>
+
+    <!-- s0-base: empty search form -->
+    <div id="s0-base" class="w-scenario active">
+      <div class="flex flex-col gap-3 mb-4">
+        <div class="flex items-center gap-2 p-3 rounded border" style="border-color:var(--w-border); background:white;">
+          <i data-lucide="map-pin" style="width:15px;height:15px;color:var(--w-muted)"></i>
+          <span class="text-sm" style="color:var(--w-muted);">출발지 입력</span>
+        </div>
+        <div class="flex items-center gap-2 p-3 rounded border" style="border-color:var(--w-border); background:white;">
+          <i data-lucide="flag" style="width:15px;height:15px;color:var(--w-muted)"></i>
+          <span class="text-sm" style="color:var(--w-muted);">목적지 입력</span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="flex-1 py-2.5 text-sm font-bold rounded" style="background:var(--w-text); color:white;">경로 검색</button>
+        <button class="px-4 py-2.5 text-sm rounded border" style="border-color:var(--w-border); background:white;">지우기</button>
+      </div>
+    </div>
+
+    <!-- s0-sc4: scenario 4 — incomplete input -->
+    <div id="s0-sc4" class="w-scenario">
+      <div class="flex flex-col gap-3 mb-4">
+        <div class="flex items-center gap-2 p-3 rounded border" style="border-color:var(--w-border); background:white;">
+          <i data-lucide="map-pin" style="width:15px;height:15px;color:var(--w-muted)"></i>
+          <span class="text-sm">서울역</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2 p-3 rounded border" style="border-color:var(--w-text); border-width:1.5px; background:white;">
+            <i data-lucide="flag" style="width:15px;height:15px;color:var(--w-muted)"></i>
+            <span class="text-sm" style="color:var(--w-muted);">목적지 입력</span>
+          </div>
+          <p class="text-xs mt-1 ml-1" style="color:var(--w-text);">목적지를 입력해 주세요</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="flex-1 py-2.5 text-sm font-bold rounded" style="background:var(--w-text); color:white;">경로 검색</button>
+        <button class="px-4 py-2.5 text-sm rounded border" style="border-color:var(--w-border); background:white;">지우기</button>
+      </div>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <ul>
+          <li>트리거: 앱 최초 진입 / 지우기 버튼 클릭 후</li>
+          <li>인터랙션: 출발지·목적지 입력 → 검색 버튼 클릭 → 경로 결과 화면으로 전환</li>
+          <li>인터랙션: 지우기 클릭 → 두 필드와 결과 모두 초기화 (이 화면 유지)</li>
+          <li>전환: 검색 성공 → 경로 결과 화면</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Screen 1: 경로 결과 ── -->
+<div id="screen-1" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-4" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      경로 결과
+    </h2>
+
+    <div class="flex gap-2 mb-4 flex-wrap items-center">
+      <span style="font-size:11px; color:var(--w-muted)">시나리오:</span>
+      <button class="w-sc-btn active" onclick="switchScenario(1, 's1-sc1', this)">1·2. 정상 결과</button>
+      <button class="w-sc-btn" onclick="switchScenario(1, 's1-sc7', this)">7. 따릉이 대여 불가</button>
+    </div>
+
+    <!-- Compact search bar -->
+    <div class="flex items-center gap-2 p-2 mb-4 rounded border text-xs" style="border-color:var(--w-border); background:var(--w-fill);">
+      <i data-lucide="map-pin" style="width:12px;height:12px;color:var(--w-muted)"></i>
+      <span>서울역</span>
+      <i data-lucide="arrow-right" style="width:11px;height:11px;color:var(--w-muted)"></i>
+      <i data-lucide="flag" style="width:12px;height:12px;color:var(--w-muted)"></i>
+      <span>강남역</span>
+      <button class="ml-auto px-2 py-0.5 border rounded" style="border-color:var(--w-border); background:white;">수정</button>
+      <button class="px-2 py-0.5 border rounded" style="border-color:var(--w-border); background:white;">지우기</button>
+    </div>
+
+    <!-- s1-sc1: scenarios 1 & 2 — normal results with diagram -->
+    <div id="s1-sc1" class="w-scenario active">
+      <p class="text-xs mb-3" style="color:var(--w-muted);">경로 3개 · 전체 이동시간 오름차순</p>
+
+      <!-- Card 1 -->
+      <div class="mb-3 p-3 border rounded" style="border-color:var(--w-border); background:white;">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-bold">28분</span>
+          <span class="text-xs px-2 py-0.5 rounded" style="background:var(--w-fill); color:var(--w-text);">최단</span>
+        </div>
+        <!-- Diagram -->
+        <div class="flex items-end gap-0 mb-3 overflow-x-auto pb-1">
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">3분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="train" style="width:13px;height:13px"></i></div>
+            <span>1호선</span>
+            <span style="color:var(--w-muted)">20분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">5분</span>
+          </div>
+        </div>
+        <!-- Segment list -->
+        <div class="flex flex-col gap-1.5 text-xs border-t pt-2" style="border-color:var(--w-border);">
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 서울역까지</span>
+            <span style="color:var(--w-muted)">3분</span>
+          </div>
+          <div class="flex justify-between">
+            <span><i data-lucide="train" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 1호선 · 서울역 → 강남역</span>
+            <span style="color:var(--w-muted)">20분</span>
+          </div>
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 목적지까지</span>
+            <span style="color:var(--w-muted)">5분</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="mb-3 p-3 border rounded" style="border-color:var(--w-border); background:white;">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-bold">34분</span>
+        </div>
+        <div class="flex items-end gap-0 mb-3 overflow-x-auto pb-1">
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">4분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="bike" style="width:13px;height:13px"></i></div>
+            <span>따릉이</span>
+            <span style="color:var(--w-muted)">25분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">5분</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 text-xs border-t pt-2" style="border-color:var(--w-border);">
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 서울역광장 대여소까지</span>
+            <span style="color:var(--w-muted)">4분</span>
+          </div>
+          <div class="flex justify-between">
+            <span><i data-lucide="bike" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 따릉이 · 서울역광장 대여소 → 강남역 대여소</span>
+            <span style="color:var(--w-muted)">25분</span>
+          </div>
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 목적지까지</span>
+            <span style="color:var(--w-muted)">5분</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="mb-3 p-3 border rounded" style="border-color:var(--w-border); background:white;">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-bold">41분</span>
+        </div>
+        <div class="flex items-end gap-0 mb-3 overflow-x-auto pb-1">
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">3분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="train" style="width:13px;height:13px"></i></div>
+            <span>4호선</span>
+            <span style="color:var(--w-muted)">28분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">10분</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 text-xs border-t pt-2" style="border-color:var(--w-border);">
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 서울역까지</span>
+            <span style="color:var(--w-muted)">3분</span>
+          </div>
+          <div class="flex justify-between">
+            <span><i data-lucide="train" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 4호선 · 서울역 → 강남역</span>
+            <span style="color:var(--w-muted)">28분</span>
+          </div>
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 목적지까지</span>
+            <span style="color:var(--w-muted)">10분</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- s1-sc7: scenario 7 — 따릉이 대여 불가 -->
+    <div id="s1-sc7" class="w-scenario">
+      <p class="text-xs mb-3" style="color:var(--w-muted);">경로 3개 · 전체 이동시간 오름차순</p>
+
+      <!-- Card 1 (normal) -->
+      <div class="mb-3 p-3 border rounded" style="border-color:var(--w-border); background:white;">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-bold">28분</span>
+          <span class="text-xs px-2 py-0.5 rounded" style="background:var(--w-fill);">최단</span>
+        </div>
+        <div class="flex items-end gap-0 mb-3 overflow-x-auto pb-1">
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">3분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="train" style="width:13px;height:13px"></i></div>
+            <span>1호선</span>
+            <span style="color:var(--w-muted)">20분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">5분</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: 따릉이 대여 불가 -->
+      <div class="mb-3 p-3 border rounded" style="border-color:var(--w-border); background:white;">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-bold">34분</span>
+        </div>
+        <div class="flex items-end gap-0 mb-3 overflow-x-auto pb-1">
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">4분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon dashed"><i data-lucide="bike" style="width:13px;height:13px"></i></div>
+            <span>따릉이</span>
+            <span style="color:var(--w-muted)">25분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">5분</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 text-xs border-t pt-2" style="border-color:var(--w-border);">
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 서울역광장 대여소까지</span>
+            <span style="color:var(--w-muted)">4분</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span><i data-lucide="bike" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 따릉이 · 서울역광장 대여소 → 강남역 대여소</span>
+            <span class="px-1.5 py-0.5 rounded border text-xs" style="border-color:var(--w-border); white-space:nowrap;">대여 불가</span>
+          </div>
+          <div class="flex justify-between">
+            <span><i data-lucide="footprints" style="width:11px;height:11px;display:inline;vertical-align:middle"></i> 도보 · 목적지까지</span>
+            <span style="color:var(--w-muted)">5분</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="mb-3 p-3 border rounded" style="border-color:var(--w-border); background:white;">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-bold">41분</span>
+        </div>
+        <div class="flex items-end gap-0 mb-3 overflow-x-auto pb-1">
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">3분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="train" style="width:13px;height:13px"></i></div>
+            <span>4호선</span>
+            <span style="color:var(--w-muted)">28분</span>
+          </div>
+          <div class="w-arrow"></div>
+          <div class="w-seg">
+            <div class="w-seg-icon"><i data-lucide="footprints" style="width:13px;height:13px"></i></div>
+            <span style="color:var(--w-muted)">도보</span>
+            <span style="color:var(--w-muted)">10분</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <ul>
+          <li>트리거: 출발지·목적지 모두 입력 후 검색 성공</li>
+          <li>인터랙션: 수정 버튼 클릭 → 검색 화면으로 전환 (이전 입력 유지)</li>
+          <li>인터랙션: 지우기 버튼 클릭 → 검색 화면으로 전환 (필드 초기화)</li>
+          <li>전환: 수정·지우기 → 검색 화면</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Screen 2: 오류 / 없음 ── -->
+<div id="screen-2" class="screen">
+  <div class="screen-content @container max-w-6xl mx-auto p-6">
+
+    <h2 class="text-lg font-bold mb-4" style="color:var(--w-muted); border-bottom:1px solid var(--w-border); padding-bottom:8px;">
+      오류 / 없음
+    </h2>
+
+    <div class="flex gap-2 mb-4 flex-wrap items-center">
+      <span style="font-size:11px; color:var(--w-muted)">시나리오:</span>
+      <button class="w-sc-btn active" onclick="switchScenario(2, 's2-sc5', this)">5. API 오류</button>
+      <button class="w-sc-btn" onclick="switchScenario(2, 's2-sc6', this)">6. 경로 없음</button>
+    </div>
+
+    <!-- Compact search bar -->
+    <div class="flex items-center gap-2 p-2 mb-4 rounded border text-xs" style="border-color:var(--w-border); background:var(--w-fill);">
+      <i data-lucide="map-pin" style="width:12px;height:12px;color:var(--w-muted)"></i>
+      <span>서울역</span>
+      <i data-lucide="arrow-right" style="width:11px;height:11px;color:var(--w-muted)"></i>
+      <i data-lucide="flag" style="width:12px;height:12px;color:var(--w-muted)"></i>
+      <span>강남역</span>
+      <button class="ml-auto px-2 py-0.5 border rounded" style="border-color:var(--w-border); background:white;">수정</button>
+      <button class="px-2 py-0.5 border rounded" style="border-color:var(--w-border); background:white;">지우기</button>
+    </div>
+
+    <!-- s2-sc5: API error -->
+    <div id="s2-sc5" class="w-scenario active">
+      <div class="flex flex-col items-center gap-3 py-12 text-center">
+        <i data-lucide="wifi-off" style="width:36px;height:36px;color:var(--w-muted)"></i>
+        <p class="text-sm font-bold">실시간 데이터를 가져오지 못했습니다</p>
+        <p class="text-xs" style="color:var(--w-muted)">잠시 후 다시 시도해 주세요</p>
+        <button class="mt-2 px-5 py-2 text-xs border rounded" style="border-color:var(--w-border); background:white;">다시 검색</button>
+      </div>
+    </div>
+
+    <!-- s2-sc6: no route -->
+    <div id="s2-sc6" class="w-scenario">
+      <div class="flex flex-col items-center gap-3 py-12 text-center">
+        <i data-lucide="map-x" style="width:36px;height:36px;color:var(--w-muted)"></i>
+        <p class="text-sm font-bold">경로를 찾을 수 없습니다</p>
+        <p class="text-xs" style="color:var(--w-muted)">서울 서비스 범위 내 출발지·목적지를 입력해 주세요</p>
+      </div>
+    </div>
+
+    <div class="screen-notes">
+      <details open>
+        <summary>Notes</summary>
+        <ul>
+          <li>트리거: 검색 후 API 오류 응답 / 경로 없음 응답 수신</li>
+          <li>인터랙션: 다시 검색 버튼 → 동일 입력으로 재검색</li>
+          <li>인터랙션: 수정·지우기 → 검색 화면으로 전환</li>
+          <li>전환: 재검색 성공 → 경로 결과 화면</li>
+        </ul>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var screenIds = [];
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('screen-' + id).classList.add('active');
+  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('nav-' + id).classList.add('active');
+}
+
+function setViewport(mode) {
+  document.body.classList.remove('viewport-mobile', 'viewport-desktop');
+  document.body.classList.add('viewport-' + mode);
+  document.querySelectorAll('.vp-toggle button').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('vp-' + mode).classList.add('active');
+}
+
+function switchScenario(screenId, targetId, btn) {
+  var screen = document.getElementById('screen-' + screenId);
+  screen.querySelectorAll('.w-scenario').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById(targetId).classList.add('active');
+  screen.querySelectorAll('.w-sc-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(b) {
+    screenIds.push(parseInt(b.id.replace('nav-', '')));
+  });
+  var first = document.querySelector('nav button[id^="nav-"]');
+  if (first) first.click();
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>

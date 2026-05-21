@@ -1,12 +1,6 @@
-import { FootprintsIcon, TrainIcon, BikeIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Segment } from '@/types/route'
-
-const ICON_MAP = {
-  walk: FootprintsIcon,
-  subway: TrainIcon,
-  bike: BikeIcon,
-} as const
+import { TRANSPORT_ICON_MAP } from './transportIcons'
 
 interface RouteDiagramProps {
   segments: Segment[]
@@ -16,11 +10,12 @@ export function RouteDiagram({ segments }: RouteDiagramProps) {
   return (
     <div className="flex items-end gap-0 overflow-x-auto pb-1">
       {segments.map((seg, i) => {
-        const Icon = ICON_MAP[seg.type]
+        const Icon = TRANSPORT_ICON_MAP[seg.type]
         return (
           <div key={i} className="flex items-end gap-0">
             <div className="flex flex-col items-center text-xs min-w-11 text-center">
               <div
+                data-testid="route-diagram-segment"
                 className={cn(
                   'size-8 rounded-full border border-border bg-muted flex items-center justify-center mb-1',
                   seg.type === 'bike' && seg.bikeAvailable === false && 'border-dashed'

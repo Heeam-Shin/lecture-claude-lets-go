@@ -41,9 +41,7 @@ async function doSearch(user: ReturnType<typeof userEvent.setup>, from = '서울
 }
 
 function getRouteCardHeaders() {
-  return screen.queryAllByText(/^\d+분$/).filter(
-    (el) => el.tagName === 'SPAN' && el.className.includes('text-sm') && el.className.includes('font-bold')
-  )
+  return screen.queryAllByTestId('route-card-time')
 }
 
 describe('TransportRouteFinder', () => {
